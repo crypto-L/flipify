@@ -23,26 +23,32 @@ def main():
 
     sp = spotipy.Spotify(auth_manager=auth_manager)
 
-    total_tracks = sp.playlist(playlist_id=creds.original_playlist_id)['tracks']['total']
-    logging.info(f"Total tracks to fetch: {total_tracks}")
+    playlist = sp.playlist(playlist_id=creds.original_playlist_id)
+    playlist_version = playlist['snapshot_id']
+    total_tracks_amount = playlist['tracks']['total']
 
-    playlist = sp.playlist_items(playlist_id=creds.original_playlist_id,
-                                 fields='items(track(name,id,is_playable)),next')
+    logging.info(f"Current playlist: {playlist_version}")
+    logging.info(f"Expected tracks amount to fetch: {total_tracks_amount}")
+
+    playlist_tracks = sp.playlist_items(playlist_id=creds.original_playlist_id,
+                                        fields='items(track(name,id)),next')
 
     fetched_count = 0
     tracks = []
     while True:
-        new_tracks = [Track(**item['track']) for item in playlist['items'] if item.get('track')]
+        new_tracks = [Track(**item['track']) for item in playlist_tracks['items'] if item.get('track')]
         tracks.extend(new_tracks)
 
         fetched_count += len(new_tracks)
-        logging.info(f"Fetched {fetched_count}/{total_tracks} tracks...")
+        logging.info(f"Fetched {fetched_count}/{total_tracks_amount} tracks...")
 
-        if playlist['next']:
-            playlist = sp.next(playlist)
+        if playlist_tracks['next']:
+            playlist_tracks = sp.next(playlist_tracks)
         else:
             break
 
+    reversed_playlist = list(reversed(tracks))
+    print(reversed_playlist)
 
 if __name__ == "__main__":
     main()
